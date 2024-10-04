@@ -1,16 +1,16 @@
-from collections.abc import Iterable
-from dataclasses import dataclass
-from typing import TypeVar, Generic, Literal, cast, reveal_type
+from typing import TypeVar, Generic, Literal, cast
 
 import numpy as np
 from numpy import ndarray, dtype, uint8, float64
+
+from lekagemodel import LeakageModel
 
 N = TypeVar('N', bound=int)
 P = TypeVar('P', bound=int)
 K = TypeVar('K', bound=int)
 
 
-class Model(Generic[P]):
+class Model(Generic[P], LeakageModel[P]):
     mean_of_classes: ndarray[tuple[Literal[256], P], dtype[float64]]
     std_of_classes: ndarray[tuple[Literal[256], P], dtype[float64]]
 

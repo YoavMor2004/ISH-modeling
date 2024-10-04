@@ -1,12 +1,15 @@
-from functools import reduce
-from typing import Optional, cast, Literal
+from typing import Optional, cast, Literal, TypeVar
 
 import numpy as np
 from numpy import ndarray, dtype, int64, uint8, float64
 
 import linearregression as lr
 import template
+from lekagemodel import LeakageModel
 from resources import Resources
+
+N = TypeVar('N', bound=int)
+P = TypeVar('P', bound=int)
 
 
 def tuple_str(t: tuple) -> str:
@@ -27,7 +30,7 @@ def is_ndarray(x: ndarray[tuple, dtype], shape: tuple[Optional[int], ...], dt: t
 
 
 def profile(res: Resources, pois: ndarray[tuple[int], dtype[int64]])\
-        -> Optional[tuple[template.Model[int], ndarray[tuple[Literal[9], int], dtype[float64]]]]:
+        -> Optional[tuple[template.Model[int], lr.Model[int]]]:
 
     labels: ndarray[tuple[int], dtype[uint8]]
     traces: ndarray[tuple[int, int], dtype[float64]]
@@ -50,45 +53,38 @@ def profile(res: Resources, pois: ndarray[tuple[int], dtype[int64]])\
     traces = cast(ndarray[tuple[int, int], dtype[float64]], traces[:, pois])
     del profiling_data, keys, plaintexts
 
-    return template.model(labels, traces), lr.model(labels, traces)
+    return template.Model(labels, traces), lr.Model(labels, traces)
 
 
-def f(res: Resources, pois: ndarray[tuple[int], dtype[int64]]) -> None:
-    template_model: template.Model
-    lr_model: ndarray[tuple[Literal[9], int], dtype[float64]]
+def attack(res: Resources, pois: ndarray[tuple[int], dtype[int64]]) -> None:
+    template_model: LeakageModel[int]
+    lr_model:       LeakageModel[int]
 
-    template_model, lr_model = profile(res, pois)
+    temp = profile(res, pois)
+    if temp is None:
+        return
+    template_model, lr_model = temp
+    del temp
 
     plaintexts: ndarray[tuple[Literal[16], int], dtype[uint8]]
     traces: ndarray[tuple[Literal[16], int, int], dtype[float64]]
 
-    attack = res.load('attack')
-    if attack is None:
+    attack_data = res.load('attack')
+    if attack_data is None:
         return print('no attack file found')
-    plaintexts = attack['plaintexts'].squeeze()
-    traces = attack['traces'].squeeze()
+    plaintexts = attack_data['plaintexts'].squeeze()
+    traces = attack_data['traces'].squeeze()
     if not is_ndarray(plaintexts, (16, None), uint8):
         return print('plaintexts data is ill-formed')
     if not is_ndarray(traces, (16, plaintexts.shape[1], None), float64):
         return print('traces data is ill-formed')
     plaintexts = cast(ndarray[tuple[Literal[16], int], dtype[uint8]], plaintexts)
     traces = cast(ndarray[tuple[Literal[16], int, int], dtype[float64]], traces[:, :, pois])
-    del attack
+    del attack_data
 
     np.set_printoptions(formatter={'int': hex})
-    print(template.keys_probability(
-        cast(ndarray[tuple[int], dtype[uint8]], plaintexts[0, :]),
-        cast(ndarray[tuple[int, int], dtype[float64]], traces[0, :, :]),
-        np.arange(256, dtype=uint8),
-        template_model
-    ).argmax(axis=0))
-
-    print(lr.keys_probability(
-        cast(ndarray[tuple[int], dtype[uint8]], plaintexts[0, :]),
-        cast(ndarray[tuple[int, int], dtype[float64]], traces[0, :, :]),
-        np.arange(256, dtype=uint8),
-        lr_model
-    ).argmax(axis=0))
+    print(template_model.get_key(plaintexts, traces))
+    print(lr_model.get_key(plaintexts, traces))
 
 
 def main() -> None:
@@ -106,15 +102,13 @@ def main() -> None:
     if not all(is_ndarray(pois, (None, ), int64) for pois in (snr_pois, lda_pois)):
         return print('pois data is ill-formed')
     del poi
+    # noinspection PyUnusedLocal
     snr_pois = cast(ndarray[tuple[int], dtype[int64]], snr_pois)
     lda_pois = cast(ndarray[tuple[int], dtype[int64]], lda_pois)
 
-    f(res, lda_pois)
+    attack(res, lda_pois)
     # f(res, snr_pois)
-
-
 
 
 if __name__ == '__main__':
     main()
-
