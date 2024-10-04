@@ -11,12 +11,12 @@ K = TypeVar('K', bound=int)
 
 
 @dataclass
-class TemplateModel(Generic[P]):
+class Model(Generic[P]):
     mean_of_classes: ndarray[tuple[Literal[256], P], dtype[float64]]
     std_of_classes: ndarray[tuple[Literal[256], P], dtype[float64]]
 
 
-def model(labels: ndarray[tuple[N], dtype[uint8]], traces: ndarray[tuple[N, P], dtype[float64]]) -> TemplateModel[P]:
+def model(labels: ndarray[tuple[N], dtype[uint8]], traces: ndarray[tuple[N, P], dtype[float64]]) -> Model[P]:
     mean_of_classes: ndarray[tuple[Literal[256], P], dtype[float64]]
     std_of_classes: ndarray[tuple[Literal[256], P], dtype[float64]]
 
@@ -27,7 +27,7 @@ def model(labels: ndarray[tuple[N], dtype[uint8]], traces: ndarray[tuple[N, P], 
         c = traces[labels == x]
         mean_of_classes[x] = c.mean(axis=0)
         std_of_classes[x] = c.std(axis=0)
-    return TemplateModel(mean_of_classes, std_of_classes)
+    return Model(mean_of_classes, std_of_classes)
 
 
 def match(
@@ -45,7 +45,7 @@ def keys_probability(
         plaintexts: ndarray[tuple[N], dtype[uint8]],
         traces:     ndarray[tuple[N, P], dtype[float64]],
         keys:       ndarray[tuple[K], dtype[uint8]],
-        m:          TemplateModel[P]
+        m:          Model[P]
 ) -> ndarray[tuple[K, P], dtype[float64]]:
 
     temp = match(

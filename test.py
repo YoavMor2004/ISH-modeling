@@ -1,15 +1,19 @@
-import numpy as np
-from numpy import uint8
-
-import linearregression as lr
-
-
-def test():
-    a = np.array([[[1., 2.], [3., 4.]], [[1, 3], [3, 5]]])
-    print(a)
-    print('\n')
-    print(np.linalg.inv(a))
+def get_fields(obj):
+    if hasattr(obj, "__dict__"):
+        return obj.__dict__
+    else:
+        raise ValueError("The provided object has no fields (no __dict__ attribute).")
 
 
-if __name__ == '__main__':
-    test()
+# Example usage
+class MyClass:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def f(self):
+        pass
+
+
+obj = MyClass(10, 20)
+print(get_fields(obj))
