@@ -44,4 +44,5 @@ def keys_probability(
         m:          ndarray[tuple[Literal[9], P], dtype[float64]]
 ) -> ndarray[tuple[K, P], dtype[float64]]:
 
-    return loss(traces, keys[None, :] ^ plaintexts[:, None], m)
+    temp = loss(traces, keys[None, :] ^ plaintexts[:, None], m)
+    return temp / temp.sum(axis=0, keepdims=True)

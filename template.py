@@ -48,7 +48,7 @@ def keys_probability(
         m:          TemplateModel[P]
 ) -> ndarray[tuple[K, P], dtype[float64]]:
 
-    return match(
+    temp = match(
         traces,
         cast(
             ndarray[tuple[N, K, P], dtype[float64]],
@@ -59,3 +59,4 @@ def keys_probability(
             m.std_of_classes[keys[np.newaxis, :] ^ plaintexts[:, np.newaxis], :]
         )
     )
+    return temp / temp.sum(axis=0, keepdims=True)
