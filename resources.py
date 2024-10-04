@@ -1,29 +1,33 @@
 import json
-from typing import Any, Optional, cast
+from typing import Any, Optional, Self
 
 from numpy import ndarray, dtype
 from scipy.io import loadmat  # type: ignore
 
 
-def new(file_path: str) -> Optional[dict[str, str]]:
-    resources: Any
-    try:
-        with open(file_path, 'r') as file:
-            resources = json.load(file)
-    except FileNotFoundError:
-        return None
+class Resources(dict[str, str]):
+    def __init__(self, data: dict[str, str]):
+        super().__init__(data)
 
-    if not isinstance(resources, dict):
-        return None
-    if not all(isinstance(k, str) and isinstance(v, str) for k, v in resources.items()):
-        return None
+    @classmethod
+    def new(cls, file_path: str) -> Optional[Self]:
+        resources: Any
+        try:
+            with open(file_path, 'r') as file:
+                resources = json.load(file)
+        except FileNotFoundError:
+            return None
 
-    return cast(dict[str, str], resources)
+        if not isinstance(resources, dict):
+            return None
+        if not all(isinstance(k, str) and isinstance(v, str) for k, v in resources.items()):
+            return None
 
+        return cls(resources)
 
-def load(resource_loader: dict[str, str], file_name: str) -> Optional[dict[str, ndarray[Any, dtype[Any]]]]:
-    if file_name not in resource_loader:
-        return None
-    return {
-        k: v for k, v in loadmat(resource_loader[file_name]).items() if isinstance(k, str) and isinstance(v, ndarray)
-    }
+    def load(self, file_name: str) -> Optional[dict[str, ndarray[tuple, dtype]]]:
+        if file_name not in self:
+            return None
+        return {
+            k: v for k, v in loadmat(self[file_name]).items() if isinstance(k, str) and isinstance(v, ndarray)
+        }
