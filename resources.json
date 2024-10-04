@@ -1,4 +1,5 @@
 {
   "profile": "resources/block_profile.mat",
-  "poi":     "resources/poi_24-10-02-2308.mat"
+  "poi":     "resources/poi_24-10-02-2308.mat",
+  "attack":  "resources/hex_profile.mat"
 }
