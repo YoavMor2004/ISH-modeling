@@ -41,8 +41,8 @@ class Model(Generic[P], LeakageModel[P]):
             self,
             plaintexts: ndarray[tuple[B, N],    dtype[uint8]],
             traces:     ndarray[tuple[B, N, P], dtype[float64]],
-            keys:       ndarray[tuple[K],       dtype[uint8]]
+            keys:       ndarray[tuple[B, K],       dtype[uint8]]
     ) -> ndarray[tuple[B, K, P], dtype[float64]]:
 
-        temp = self.loss(traces, keys[None, None, :] ^ plaintexts[:, :, None])
+        temp = self.loss(traces, keys[:, None, :] ^ plaintexts[:, :, None])
         return temp / temp.sum(axis=1, keepdims=True)

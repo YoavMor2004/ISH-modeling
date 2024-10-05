@@ -28,10 +28,10 @@ class Model(Generic[P], LeakageModel[P]):
             self,
             plaintexts: ndarray[tuple[B, N],    dtype[uint8]],
             traces:     ndarray[tuple[B, N, P], dtype[float64]],
-            keys:       ndarray[tuple[K],       dtype[uint8]]
+            keys:       ndarray[tuple[B, K],       dtype[uint8]]
     ) -> ndarray[tuple[B, K, P], dtype[float64]]:
 
-        c = cast(ndarray[tuple[B, N, K], dtype[np.int64]], keys[None, None, :] ^ plaintexts[:, :, None])
+        c = cast(ndarray[tuple[B, N, K], dtype[np.int64]], keys[:, None, :] ^ plaintexts[:, :, None])
         temp = Model[P].match(
             traces,
             cast(ndarray[tuple[B, N, K, P], dtype[float64]], self.mean_of_classes[c, :]),

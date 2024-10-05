@@ -16,14 +16,21 @@ class LeakageModel(ABC, Generic[P]):
             self,
             plaintexts: ndarray[tuple[B, N],    dtype[uint8]],
             traces:     ndarray[tuple[B, N, P], dtype[float64]],
-            keys:       ndarray[tuple[K],       dtype[uint8]]
+            keys:       ndarray[tuple[B, K],       dtype[uint8]]
     ) -> ndarray[tuple[B, K, P], dtype[float64]]:
         pass
 
     def get_key(
             self,
-            plaintexts: ndarray[tuple[Literal[16], N],    dtype[uint8]],
-            traces:     ndarray[tuple[Literal[16], N, P], dtype[float64]]
-    ) -> ndarray[tuple[Literal[16], P], dtype[uint8]]:
+            plaintexts: ndarray[tuple[B, N],    dtype[uint8]],
+            traces:     ndarray[tuple[B, N, P], dtype[float64]]
+    ) -> ndarray[tuple[B, P], dtype[uint8]]:
 
-        return self.keys_probability(plaintexts, traces, np.arange(256, dtype=uint8)).argmax(axis=0)
+        return self.keys_probability(
+            plaintexts,
+            traces,
+            cast(
+                ndarray[tuple[B, K], dtype[uint8]],
+                np.broadcast_to(np.arange(256, dtype=uint8), (plaintexts.shape[0], 256))
+            )
+        ).argmax(axis=0)

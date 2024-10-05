@@ -2,10 +2,7 @@ import numpy as np
 
 
 def test():
-    a = np.array([[[1., 2.], [3., 4.]], [[1, 3], [3, 5]]])
-    print(a)
-    print('\n')
-    print(np.linalg.inv(a))
+    x = np.broadcast_to(np.arange(256, dtype=np.uint8), (4, 256))
 
 
 if __name__ == '__main__':
