@@ -1,5 +1,6 @@
 {
-  "poi":     "resources/snr_poi_24-10-07-2352.mat",
+  "poi_file": "resources/snr_poi_24-10-07-2352.mat",
   "profile": "resources/profile.mat",
-  "attack":  "resources/attack.mat"
+  "attack":  "resources/attack.mat",
+  "poi": "snr_pois"
 }
