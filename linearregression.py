@@ -35,7 +35,7 @@ class Model(Generic[P], LeakageModel[P]):
             c:      ndarray[tuple[B, N, K], dtype[uint8]]
     ) -> ndarray[tuple[B, K, P], dtype[float64]]:
 
-        return np.square(traces[:, None, :, :] - expand(c).transpose(3, 0, 2, 1) @ self.coefficients).sum(axis=2)
+        return np.square(traces[:, None, :, :] - expand(c).transpose(1, 3, 2, 0) @ self.coefficients).sum(axis=2)
 
     def keys_probability(
             self,
@@ -44,5 +44,4 @@ class Model(Generic[P], LeakageModel[P]):
             keys:       ndarray[tuple[B, K],       dtype[uint8]]
     ) -> ndarray[tuple[B, K, P], dtype[float64]]:
 
-        temp = self.loss(traces, keys[:, None, :] ^ plaintexts[:, :, None])
-        return temp / temp.sum(axis=1, keepdims=True)
+        return np.exp(-self.loss(traces, keys[:, None, :] ^ plaintexts[:, :, None]))

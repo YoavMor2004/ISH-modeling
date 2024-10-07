@@ -8,6 +8,7 @@ import template
 from lekagemodel import LeakageModel
 from resources import Resources
 
+B = TypeVar('B', bound=int)
 N = TypeVar('N', bound=int)
 P = TypeVar('P', bound=int)
 
@@ -83,8 +84,10 @@ def attack(res: Resources, pois: ndarray[tuple[int], dtype[int64]]) -> None:
     del attack_data
 
     np.set_printoptions(formatter={'int': hex})
-    print(template_model.get_key(plaintexts, traces))
-    print(lr_model.get_key(plaintexts, traces))
+    print('template keys:')
+    print(template_model.get_key(plaintexts, traces).T, '\n')
+    print('lr keys:')
+    print(lr_model.get_key(plaintexts, traces).T, '\n')
 
 
 def main() -> None:
@@ -93,21 +96,27 @@ def main() -> None:
         return print('no resources.json file found')
 
     snr_pois: ndarray[tuple[int], dtype[int64]]
-    lda_pois: ndarray[tuple[int], dtype[int64]]
-    poi = res.load('poi')
-    if poi is None:
-        return print('no poi file found')
-    snr_pois = poi['snr_pois'].squeeze()
-    lda_pois = poi['lda_pois'].squeeze()
-    if not all(is_ndarray(pois, (None, ), int64) for pois in (snr_pois, lda_pois)):
-        return print('pois data is ill-formed')
-    del poi
+    pca_pois: ndarray[tuple[int], dtype[int64]]
+    # poi = res.load('poi')
+    # if poi is None:
+    #     return print('no poi file found')
+    # snr_pois = poi['snr_pois'].squeeze()
+    # pca_pois = poi['pca_pois'].squeeze()
+    # if not all(is_ndarray(pois, (None, ), int64) for pois in (snr_pois, pca_pois)):
+    #     return print('pois data is ill-formed')
+    # del poi
     # noinspection PyUnusedLocal
-    snr_pois = cast(ndarray[tuple[int], dtype[int64]], snr_pois)
-    lda_pois = cast(ndarray[tuple[int], dtype[int64]], lda_pois)
+    # snr_pois = cast(ndarray[tuple[int], dtype[int64]], snr_pois)
+    pca_pois = cast(
+        ndarray[tuple[Literal[16]], dtype[int64]],
+        np.array([4253, 3184, 2555, 1348, 1539, 204, 376, 82, 876, 4066, 3247, 4563, 2518, 3033, 4853, 3647])
+    )
 
-    attack(res, lda_pois)
-    # f(res, snr_pois)
+    # input('Commence with SNR?')
+    # attack(res, snr_pois)
+
+    input('Commence with PCA?')
+    attack(res, pca_pois)
 
 
 if __name__ == '__main__':

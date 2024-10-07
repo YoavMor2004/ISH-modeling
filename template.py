@@ -31,13 +31,12 @@ class Model(Generic[P], LeakageModel[P]):
             keys:       ndarray[tuple[B, K],       dtype[uint8]]
     ) -> ndarray[tuple[B, K, P], dtype[float64]]:
 
-        c = cast(ndarray[tuple[B, N, K], dtype[np.int64]], keys[:, None, :] ^ plaintexts[:, :, None])
-        temp = Model[P].match(
+        c = cast(ndarray[tuple[B, N, K], dtype[np.uint8]], keys[:, None, :] ^ plaintexts[:, :, None])
+        return Model[P].match(
             traces,
             cast(ndarray[tuple[B, N, K, P], dtype[float64]], self.mean_of_classes[c, :]),
             cast(ndarray[tuple[B, N, K, P], dtype[float64]], self.std_of_classes[c, :])
         )
-        return temp / temp.sum(axis=1, keepdims=True)
 
     @staticmethod
     def match(
@@ -46,6 +45,12 @@ class Model(Generic[P], LeakageModel[P]):
             std_of_classes:  ndarray[tuple[B, N, K, P], dtype[float64]]
     ) -> ndarray[tuple[B, K, P], dtype[float64]]:
 
-        return np.log(
-            1 / (np.sqrt(2 * np.pi) * std_of_classes) * np.exp(-(traces[:, :, np.newaxis, :] - mean_of_classes) ** 2)
-        ).sum(axis=0)
+        # return (-np.log(np.sqrt(2 * np.pi) * std_of_classes)
+        #         - (traces[:, :, np.newaxis, :] - mean_of_classes) ** 2 / (2 * std_of_classes ** 2)).sum(axis=1)
+        norm: ndarray[tuple[B, K, P], dtype[float64]]
+
+        norm = np.sum((traces[:, :, None, :] - mean_of_classes) ** 2 / std_of_classes ** 2, axis=1)
+        return -np.log(2 * np.pi) * traces.shape[1] / 2 - np.log(std_of_classes).sum(axis=1) - norm / 2
+
+        # return -1 / 2 * norm - np.log(np.sum(np.exp(-1 / 2 * norm), axis=1, keepdims=True))
+        # return -1 / 2 * (norm - np.min(norm, axis=1, keepdims=True))

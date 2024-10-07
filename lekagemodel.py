@@ -30,7 +30,7 @@ class LeakageModel(ABC, Generic[P]):
             plaintexts,
             traces,
             cast(
-                ndarray[tuple[B, K], dtype[uint8]],
+                ndarray[tuple[B, Literal[256]], dtype[uint8]],
                 np.broadcast_to(np.arange(256, dtype=uint8), (plaintexts.shape[0], 256))
             )
-        ).argmax(axis=0)
+        ).argmax(axis=1)
