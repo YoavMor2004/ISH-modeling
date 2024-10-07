@@ -47,4 +47,4 @@ class Model(Generic[B], LeakageModel[B]):
             keys:       ndarray[tuple[B, K],       dtype[uint8]]
     ) -> ndarray[tuple[B, K], dtype[float64]]:
 
-        return np.exp(-self.loss(traces, keys[:, None, :] ^ plaintexts[:, :, None]))
+        return -self.loss(traces, keys[:, None, :] ^ plaintexts[:, :, None])

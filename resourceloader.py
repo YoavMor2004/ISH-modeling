@@ -77,12 +77,17 @@ class Resources(dict[str, str]):
 
         return cls(resources)
 
-    def load(self, file_name: str, profile_type: Type[T]) -> Optional[T]:
+    def load_profile(self, file_name: str) -> Optional[Profile]:
         if file_name not in self:
             return None
-        if profile_type is Profile:
-            return profile_new(loadmat(self[file_name]))
-        if profile_type is Attack:
-            return attack_new(loadmat(self[file_name]))
-        else:
+        return profile_new(loadmat(self[file_name]))
+
+    def load_attack(self, file_name: str) -> Optional[Attack]:
+        if file_name not in self:
             return None
+        return attack_new(loadmat(self[file_name]))
+
+    def load(self, file_name: str) -> Optional[dict[str, ndarray[tuple, dtype]]]:
+        if file_name not in self:
+            return None
+        return loadmat(self[file_name])

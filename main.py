@@ -5,8 +5,7 @@ from numpy import ndarray, dtype, int64, uint8, float64
 
 import linearregression as lr
 import template
-from lekagemodel import LeakageModel
-from resourceloader import Resources, Profile, Attack
+from resourceloader import Resources, Attack
 
 B = TypeVar('B', bound=int)
 N = TypeVar('N', bound=int)
@@ -33,7 +32,7 @@ def is_ndarray(x: ndarray[tuple, dtype], shape: tuple[Optional[int], ...], dt: t
 def profile(res: Resources, pois: ndarray[tuple[B], dtype[int64]])\
         -> Optional[tuple[template.Model[B], lr.Model[B]]]:
 
-    profile_data = res.load('profile', Profile)
+    profile_data = res.load_profile('profile')
     if profile_data is None:
         return print('no profile file found')
     if profile_data['labels'].shape[0] != pois.size:
@@ -55,20 +54,20 @@ def attack(res: Resources, pois: ndarray[tuple[B], dtype[int64]]) -> None:
     plaintexts: ndarray[tuple[B, int], dtype[uint8]]
     traces: ndarray[tuple[B, int], dtype[float64]]
 
-    attack_data: Optional[Attack] = res.load('attack', Attack)
+    attack_data = res.load_profile('attack')
     if attack_data is None:
         return print('no attack file found')
     if attack_data['traces'].shape[0] != pois.size:
         return print('attack and pois have different block counts')
-    plaintexts = cast(ndarray[tuple[B, int], dtype[uint8]], attack_data['plaintexts'])
+    plaintexts = cast(ndarray[tuple[B, int], dtype[uint8]], attack_data['labels'])
     traces = cast(ndarray[tuple[B, int], dtype[float64]], attack_data['traces'][np.arange(pois.size), :, pois])
     del attack_data
 
     np.set_printoptions(formatter={'int': hex})
     print('template keys:')
-    print(template_model.get_key(plaintexts, traces).T, '\n')
+    print(template_model.get_key(plaintexts, traces), '\n')
     print('lr keys:')
-    print(lr_model.get_key(plaintexts, traces).T, '\n')
+    print(lr_model.get_key(plaintexts, traces), '\n')
 
 
 def main() -> None:
@@ -76,28 +75,15 @@ def main() -> None:
     if res is None:
         return print('no resources.json file found')
 
-    # snr_pois: ndarray[tuple[int], dtype[int64]]
-    pca_pois: ndarray[tuple[int], dtype[int64]]
-    # poi = res.load('poi')
-    # if poi is None:
-    #     return print('no poi file found')
-    # snr_pois = poi['snr_pois'].squeeze()
-    # pca_pois = poi['pca_pois'].squeeze()
-    # if not all(is_ndarray(pois, (None, ), int64) for pois in (snr_pois, pca_pois)):
-    #     return print('pois data is ill-formed')
-    # del poi
-    # noinspection PyUnusedLocal
-    # snr_pois = cast(ndarray[tuple[int], dtype[int64]], snr_pois)
-    pca_pois = cast(
-        ndarray[tuple[Literal[16]], dtype[int64]],
-        np.array([4253, 3184, 2555, 1348, 1539, 204, 376, 82, 876, 4066, 3247, 4563, 2518, 3033, 4853, 3647])
-    )
-
-    # input('Commence with SNR?')
-    # attack(res, snr_pois)
-
-    input('Commence with PCA?')
-    attack(res, pca_pois)
+    snr_pois: ndarray[tuple[Literal[16]], dtype[int64]]
+    poi = res.load('poi')
+    if poi is None:
+        return print('no poi file found')
+    if not is_ndarray(poi['snr_pois'].squeeze(), (16, ), int64):
+        return print('snr_pois is ill-formed')
+    snr_pois = poi['snr_pois'].squeeze()
+    del poi
+    attack(res, snr_pois)
 
 
 if __name__ == '__main__':
