@@ -6,25 +6,24 @@ from numpy import ndarray, dtype, uint8, float64
 
 B = TypeVar('B', bound=int)
 N = TypeVar('N', bound=int)
-P = TypeVar('P', bound=int)
 K = TypeVar('K', bound=int)
 
 
-class LeakageModel(ABC, Generic[B, P]):
+class LeakageModel(ABC, Generic[B]):
     @abstractmethod
     def keys_probability(
             self,
-            plaintexts: ndarray[tuple[B, N],    dtype[uint8]],
-            traces:     ndarray[tuple[B, N, P], dtype[float64]],
-            keys:       ndarray[tuple[B, K],    dtype[uint8]]
-    ) -> ndarray[tuple[B, K, P], dtype[float64]]:
+            plaintexts: ndarray[tuple[B, N], dtype[uint8]],
+            traces:     ndarray[tuple[B, N], dtype[float64]],
+            keys:       ndarray[tuple[B, K], dtype[uint8]]
+    ) -> ndarray[tuple[B, K], dtype[float64]]:
         pass
 
     def get_key(
             self,
-            plaintexts: ndarray[tuple[B, N],    dtype[uint8]],
-            traces:     ndarray[tuple[B, N, P], dtype[float64]]
-    ) -> ndarray[tuple[B, P], dtype[uint8]]:
+            plaintexts: ndarray[tuple[B, N], dtype[uint8]],
+            traces:     ndarray[tuple[B, N], dtype[float64]]
+    ) -> ndarray[tuple[B], dtype[uint8]]:
 
         return self.keys_probability(
             plaintexts,
