@@ -6,7 +6,7 @@ from numpy import ndarray, dtype, int64, uint8, float64
 import linearregression as lr
 import template
 from lekagemodel import LeakageModel
-from resources import Resources
+from resourceloader import Resources, Profile, Attack
 
 B = TypeVar('B', bound=int)
 N = TypeVar('N', bound=int)
@@ -30,57 +30,38 @@ def is_ndarray(x: ndarray[tuple, dtype], shape: tuple[Optional[int], ...], dt: t
             and x.dtype == dt)
 
 
-def profile(res: Resources, pois: ndarray[tuple[int], dtype[int64]])\
-        -> Optional[tuple[template.Model[int], lr.Model[int]]]:
+def profile(res: Resources, pois: ndarray[tuple[B], dtype[int64]])\
+        -> Optional[tuple[template.Model[B], lr.Model[B]]]:
 
-    labels: ndarray[tuple[int], dtype[uint8]]
-    traces: ndarray[tuple[int, int], dtype[float64]]
-
-    profiling_data = res.load('profile')
-    if profiling_data is None:
+    profile_data = res.load('profile', Profile)
+    if profile_data is None:
         return print('no profile file found')
-    keys = profiling_data['keys'].squeeze()
-    plaintexts = profiling_data['plaintexts'].squeeze()
-    traces = profiling_data['traces'].squeeze()
-    if not is_ndarray(keys, (None,), uint8):
-        return print('keys data is ill-formed')
-    if not is_ndarray(plaintexts, (keys.size,), uint8):
-        return print('plaintexts data is ill-formed')
-    if not is_ndarray(traces, (keys.size, None), float64):
-        return print('traces data is ill-formed')
-    keys = cast(ndarray[tuple[int], dtype[uint8]], keys)
-    plaintexts = cast(ndarray[tuple[int], dtype[uint8]], plaintexts)
-    labels = keys ^ plaintexts
-    traces = cast(ndarray[tuple[int, int], dtype[float64]], traces[:, pois])
-    del profiling_data, keys, plaintexts
+    if profile_data['labels'].shape[0] != pois.size:
+        return print('profile and pois have different block counts')
+    labels = cast(ndarray[tuple[B, int], dtype[uint8]], profile_data['labels'])
+    traces = cast(ndarray[tuple[B, int], dtype[float64]], profile_data['traces'][np.arange(pois.size), :, pois])
+    del profile_data
 
-    return template.Model(labels, traces), lr.Model(labels, traces)
+    return template.Model[B](labels, traces), lr.Model[B](labels, traces)
 
 
-def attack(res: Resources, pois: ndarray[tuple[int], dtype[int64]]) -> None:
-    template_model: LeakageModel[int]
-    lr_model:       LeakageModel[int]
-
+def attack(res: Resources, pois: ndarray[tuple[B], dtype[int64]]) -> None:
     temp = profile(res, pois)
     if temp is None:
         return
     template_model, lr_model = temp
     del temp
 
-    plaintexts: ndarray[tuple[Literal[16], int], dtype[uint8]]
-    traces: ndarray[tuple[Literal[16], int, int], dtype[float64]]
+    plaintexts: ndarray[tuple[B, int], dtype[uint8]]
+    traces: ndarray[tuple[B, int], dtype[float64]]
 
-    attack_data = res.load('attack')
+    attack_data: Optional[Attack] = res.load('attack', Attack)
     if attack_data is None:
         return print('no attack file found')
-    plaintexts = attack_data['plaintexts'].squeeze()
-    traces = attack_data['traces'].squeeze()
-    if not is_ndarray(plaintexts, (16, None), uint8):
-        return print('plaintexts data is ill-formed')
-    if not is_ndarray(traces, (16, plaintexts.shape[1], None), float64):
-        return print('traces data is ill-formed')
-    plaintexts = cast(ndarray[tuple[Literal[16], int], dtype[uint8]], plaintexts)
-    traces = cast(ndarray[tuple[Literal[16], int, int], dtype[float64]], traces[:, :, pois])
+    if attack_data['traces'].shape[0] != pois.size:
+        return print('attack and pois have different block counts')
+    plaintexts = cast(ndarray[tuple[B, int], dtype[uint8]], attack_data['plaintexts'])
+    traces = cast(ndarray[tuple[B, int], dtype[float64]], attack_data['traces'][np.arange(pois.size), :, pois])
     del attack_data
 
     np.set_printoptions(formatter={'int': hex})
@@ -95,7 +76,7 @@ def main() -> None:
     if res is None:
         return print('no resources.json file found')
 
-    snr_pois: ndarray[tuple[int], dtype[int64]]
+    # snr_pois: ndarray[tuple[int], dtype[int64]]
     pca_pois: ndarray[tuple[int], dtype[int64]]
     # poi = res.load('poi')
     # if poi is None:

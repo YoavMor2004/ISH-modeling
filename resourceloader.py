@@ -11,7 +11,7 @@ class Profile(TypedDict):
 
 
 class Attack(TypedDict):
-    labels: ndarray[tuple[int, int], dtype[uint8]]
+    plaintexts: ndarray[tuple[int, int], dtype[uint8]]
     traces: ndarray[tuple[int, int, int], dtype[float64]]
 
 
