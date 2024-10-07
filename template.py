@@ -7,50 +7,43 @@ from lekagemodel import LeakageModel
 
 B = TypeVar('B', bound=int)
 N = TypeVar('N', bound=int)
-P = TypeVar('P', bound=int)
 K = TypeVar('K', bound=int)
 
 
-class Model(Generic[P], LeakageModel[P]):
-    mean_of_classes: ndarray[tuple[Literal[256], P], dtype[float64]]
-    std_of_classes: ndarray[tuple[Literal[256], P], dtype[float64]]
+class Model(Generic[B], LeakageModel[B]):
+    mean_of_classes: ndarray[tuple[B, Literal[256]], dtype[float64]]
+    std_of_classes:  ndarray[tuple[B, Literal[256]], dtype[float64]]
 
-    def __init__(self, labels: ndarray[tuple[N], dtype[uint8]], traces: ndarray[tuple[N, P], dtype[float64]]):
-        self.mean_of_classes = np.empty((256, traces.shape[1]), dtype=float64)
-        self.std_of_classes = np.empty((256, traces.shape[1]), dtype=float64)
-        for x in range(256):
-            c: ndarray[tuple[int, P], dtype[float64]]
-            c = traces[labels == x]
-            self.mean_of_classes[x] = c.mean(axis=0)
-            self.std_of_classes[x] = c.std(axis=0)
+    def __init__(self, labels: ndarray[tuple[B, N], dtype[uint8]], traces: ndarray[tuple[B, N], dtype[float64]]):
+        self.mean_of_classes = np.empty((traces.shape[0], 256), dtype=float64)
+        self.std_of_classes = np.empty((traces.shape[0], 256), dtype=float64)
+        for b in range(16):
+            for x in range(256):
+                block_class_traces = cast(ndarray[tuple[int], dtype[float64]], traces[b, labels[b, :] == x])
+                self.mean_of_classes[b, x] = block_class_traces.mean()
+                self.std_of_classes[b, x] = block_class_traces.std()
 
     def keys_probability(
             self,
-            plaintexts: ndarray[tuple[B, N],    dtype[uint8]],
-            traces:     ndarray[tuple[B, N, P], dtype[float64]],
-            keys:       ndarray[tuple[B, K],       dtype[uint8]]
-    ) -> ndarray[tuple[B, K, P], dtype[float64]]:
+            plaintexts: ndarray[tuple[B, N], dtype[uint8]],
+            traces:     ndarray[tuple[B, N], dtype[float64]],
+            keys:       ndarray[tuple[B, K], dtype[uint8]]
+    ) -> ndarray[tuple[B, K], dtype[float64]]:
 
         c = cast(ndarray[tuple[B, N, K], dtype[np.uint8]], keys[:, None, :] ^ plaintexts[:, :, None])
-        return Model[P].match(
+        return Model[B].match(
             traces,
-            cast(ndarray[tuple[B, N, K, P], dtype[float64]], self.mean_of_classes[c, :]),
-            cast(ndarray[tuple[B, N, K, P], dtype[float64]], self.std_of_classes[c, :])
+            self.mean_of_classes[np.arange(keys.shape[0])[:, None, None], c],
+            self.std_of_classes[np.arange(keys.shape[0])[:, None, None], c]
         )
 
     @staticmethod
     def match(
-            traces:          ndarray[tuple[B, N, P],    dtype[float64]],
-            mean_of_classes: ndarray[tuple[B, N, K, P], dtype[float64]],
-            std_of_classes:  ndarray[tuple[B, N, K, P], dtype[float64]]
-    ) -> ndarray[tuple[B, K, P], dtype[float64]]:
+            traces:          ndarray[tuple[B, N],    dtype[float64]],
+            mean_of_classes: ndarray[tuple[B, N, K], dtype[float64]],
+            std_of_classes:  ndarray[tuple[B, N, K], dtype[float64]]
+    ) -> ndarray[tuple[B, K], dtype[float64]]:
 
-        # return (-np.log(np.sqrt(2 * np.pi) * std_of_classes)
-        #         - (traces[:, :, np.newaxis, :] - mean_of_classes) ** 2 / (2 * std_of_classes ** 2)).sum(axis=1)
-        norm: ndarray[tuple[B, K, P], dtype[float64]]
-
-        norm = np.sum((traces[:, :, None, :] - mean_of_classes) ** 2 / std_of_classes ** 2, axis=1)
+        norm: ndarray[tuple[B, K], dtype[float64]]
+        norm = np.sum((traces[:, :, None] - mean_of_classes) ** 2 / std_of_classes ** 2, axis=1)
         return -np.log(2 * np.pi) * traces.shape[1] / 2 - np.log(std_of_classes).sum(axis=1) - norm / 2
-
-        # return -1 / 2 * norm - np.log(np.sum(np.exp(-1 / 2 * norm), axis=1, keepdims=True))
-        # return -1 / 2 * (norm - np.min(norm, axis=1, keepdims=True))
